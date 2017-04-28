@@ -42,7 +42,7 @@ module IceCube
     end
 
     def self.match_zone(input_time, reference)
-      return unless time = ensure_time(input_time, reference)
+      return unless time = ensure_time(input_time)
       time = if reference.respond_to? :time_zone
                time.in_time_zone(reference.time_zone)
              else
@@ -58,21 +58,13 @@ module IceCube
     end
 
     # Ensure that this is either nil, or a time
-    def self.ensure_time(time, reference = nil, date_eod = false)
+    def self.ensure_time(time, date_eod = false)
       case time
       when DateTime
         warn "IceCube: DateTime support is deprecated (please use Time) at: #{ caller[2] }"
         Time.local(time.year, time.month, time.day, time.hour, time.min, time.sec)
       when Date
-        if date_eod
-          end_of_date(time, reference)
-        else
-          if reference
-            build_in_zone([time.year, time.month, time.day], reference)
-          else
-            time.to_time
-          end
-        end
+        date_eod ? end_of_date(time) : time.to_time
       else
         time
       end
@@ -109,14 +101,6 @@ module IceCube
       end
     end
 
-    # Get a more precise equality for time objects
-    # Ruby provides a Time#hash method, but it fails to account for UTC
-    # offset (so the current date may be different) or DST rules (so the
-    # hour may be wrong for different schedule occurrences)
-    def self.hash(time)
-      [time, time.utc_offset, time.zone].hash
-    end
-
     # Check the deserialized time offset string against actual local time
     # offset to try and preserve the original offset for plain Ruby Time. If
     # the offset is the same as local we can assume the same original zone and
@@ -143,7 +127,7 @@ module IceCube
     def self.sym_to_month(sym)
       MONTHS.fetch(sym) do |k|
         MONTHS.values.detect { |i| i.to_s == k.to_s } or
-        raise ArgumentError, "Expecting Integer or Symbol value for month. " \
+        raise ArgumentError, "Expecting Fixnum or Symbol value for month. " \
                              "No such month: #{k.inspect}"
       end
     end
@@ -153,7 +137,7 @@ module IceCube
     def self.sym_to_wday(sym)
       DAYS.fetch(sym) do |k|
         DAYS.values.detect { |i| i.to_s == k.to_s } or
-        raise ArgumentError, "Expecting Integer or Symbol value for weekday. " \
+        raise ArgumentError, "Expecting Fixnum or Symbol value for weekday. " \
                              "No such weekday: #{k.inspect}"
       end
     end
@@ -163,7 +147,7 @@ module IceCube
     def self.wday_to_sym(wday)
       return sym = wday if DAYS.keys.include? wday
       DAYS.invert.fetch(wday) do |i|
-        raise ArgumentError, "Expecting Integer value for weekday. " \
+        raise ArgumentError, "Expecting Fixnum value for weekday. " \
                              "No such wday number: #{i.inspect}"
       end
     end

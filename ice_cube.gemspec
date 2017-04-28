@@ -1,7 +1,4 @@
-# encoding: utf-8
-lib = File.expand_path('../lib', __FILE__)
-$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'ice_cube/version'
+require File.dirname(__FILE__) + '/lib/ice_cube/version'
 
 Gem::Specification.new do |s|
   s.name          = 'ice_cube'
@@ -21,5 +18,8 @@ Gem::Specification.new do |s|
   s.rubyforge_project = "ice-cube"
 
   s.add_development_dependency('rake')
-  s.add_development_dependency('rspec', '> 3')
+  s.add_development_dependency('rspec', '~> 2.12.0')
+  s.add_development_dependency('activesupport', '>= 3.0.0')
+  s.add_development_dependency('tzinfo')
+  s.add_development_dependency('i18n')
 end
