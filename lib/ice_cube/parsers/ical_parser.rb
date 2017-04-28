@@ -24,18 +24,14 @@ module IceCube
     end
 
     def self.rule_from_ical(ical)
-      raise ArgumentError, 'empty ical rule' if ical.nil?
-
-      validations = {}
-      params = {validations: validations, interval: 1}
+      params = { validations: { } }
 
       ical.split(';').each do |rule|
         (name, value) = rule.split('=')
-        raise ArgumentError, "Invalid iCal rule component" if value.nil?
         value.strip!
         case name
         when 'FREQ'
-          params[:rule_type] = "IceCube::#{value[0]}#{value.downcase[1..-1]}Rule"
+          params[:freq] = value.downcase
         when 'INTERVAL'
           params[:interval] = value.to_i
         when 'COUNT'
@@ -43,13 +39,13 @@ module IceCube
         when 'UNTIL'
           params[:until] = Time.parse(value).utc
         when 'WKST'
-          params[:week_start] = TimeUtil.ical_day_to_symbol(value)
+          params[:wkst] = TimeUtil.ical_day_to_symbol(value)
         when 'BYSECOND'
-          validations[:second_of_minute] = value.split(',').map(&:to_i)
+          params[:validations][:second_of_minute] = value.split(',').collect(&:to_i)
         when 'BYMINUTE'
-          validations[:minute_of_hour] = value.split(',').map(&:to_i)
+          params[:validations][:minute_of_hour] = value.split(',').collect(&:to_i)
         when 'BYHOUR'
-          validations[:hour_of_day] = value.split(',').map(&:to_i)
+          params[:validations][:hour_of_day] = value.split(',').collect(&:to_i)
         when 'BYDAY'
           dows = {}
           days = []
@@ -63,21 +59,33 @@ module IceCube
               days.push TimeUtil.sym_to_wday(day) if dows[day].nil?
             end
           end
-          validations[:day_of_week] = dows unless dows.empty?
-          validations[:day] = days unless days.empty?
+          params[:validations][:day_of_week] = dows unless dows.empty?
+          params[:validations][:day] = days unless days.empty?
         when 'BYMONTHDAY'
-          validations[:day_of_month] = value.split(',').map(&:to_i)
+          params[:validations][:day_of_month] = value.split(',').collect(&:to_i)
         when 'BYMONTH'
-          validations[:month_of_year] = value.split(',').map(&:to_i)
+          params[:validations][:month_of_year] = value.split(',').collect(&:to_i)
         when 'BYYEARDAY'
-          validations[:day_of_year] = value.split(',').map(&:to_i)
+          params[:validations][:day_of_year] = value.split(',').collect(&:to_i)
         when 'BYSETPOS'
         else
-          validations[name] = nil # invalid type
+          raise "Invalid or unsupported rrule command: #{name}"
         end
       end
 
-      Rule.from_hash(params)
+      params[:interval] ||= 1
+
+      # WKST only valid for weekly rules
+      params.delete(:wkst) unless params[:freq] == 'weekly'
+
+      rule = Rule.send(*params.values_at(:freq, :interval, :wkst).compact)
+      rule.count(params[:count]) if params[:count]
+      rule.until(params[:until]) if params[:until]
+      params[:validations].each do |key, value|
+        value.is_a?(Array) ? rule.send(key, *value) : rule.send(key, value)
+      end
+
+      rule
     end
   end
 end

@@ -9,7 +9,7 @@ describe IceCube::Schedule do
   describe "::dump(schedule)" do
 
     it "serializes a Schedule object as YAML string" do
-      expect(yaml).to start_with "---\n"
+      yaml.should start_with "---\n"
     end
 
     [nil, ""].each do |blank|
@@ -17,7 +17,7 @@ describe IceCube::Schedule do
         let(:schedule) { blank }
 
         it "returns #{blank.inspect}" do
-          expect(yaml).to be blank
+          yaml.should be blank
         end
       end
     end
@@ -28,7 +28,7 @@ describe IceCube::Schedule do
     let(:new_schedule) { described_class.load yaml }
 
     it "creates a new object from a YAML string" do
-      expect(new_schedule.start_time.to_s).to eq schedule.start_time.to_s
+      new_schedule.start_time.to_s.should eq schedule.start_time.to_s
     end
 
     [nil, ""].each do |blank|
@@ -36,7 +36,7 @@ describe IceCube::Schedule do
         let(:yaml) { blank }
 
         it "returns #{blank.inspect}" do
-          expect(new_schedule).to be blank
+          new_schedule.should be blank
         end
       end
     end
